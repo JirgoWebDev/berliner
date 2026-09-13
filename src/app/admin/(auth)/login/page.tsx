@@ -27,7 +27,7 @@ export default function LoginPage() {
       setError('Hatalı kullanıcı adı veya şifre.');
       setLoading(false);
     } else {
-      router.push('/admin');
+      router.push('/admin/dashboard');
       router.refresh();
     }
   };
