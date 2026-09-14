@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext } from 'react';
 
 type Language = 'tr' | 'en';
 
@@ -31,21 +31,37 @@ const translations = {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
-export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguageState] = useState<Language>('tr');
-  const [mounted, setMounted] = useState(false);
+function getLanguageSnapshot(): Language {
+  const saved = localStorage.getItem('language');
+  return (saved === 'tr' || saved === 'en') ? saved : 'tr';
+}
 
-  useEffect(() => {
-    setMounted(true);
-    const saved = localStorage.getItem('language') as Language;
-    if (saved && (saved === 'tr' || saved === 'en')) {
-      setLanguageState(saved);
-    }
-  }, []);
+function getLanguageServerSnapshot(): Language {
+  return 'tr';
+}
+
+function subscribeLanguage(callback: () => void) {
+  window.addEventListener('storage', callback);
+  return () => window.removeEventListener('storage', callback);
+}
+
+const emptySubscribe = () => () => {};
+
+export function LanguageProvider({ children }: { children: React.ReactNode }) {
+  const language = React.useSyncExternalStore(
+    subscribeLanguage,
+    getLanguageSnapshot,
+    getLanguageServerSnapshot
+  );
+  const mounted = React.useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
 
   const setLanguage = (lang: Language) => {
-    setLanguageState(lang);
     localStorage.setItem('language', lang);
+    window.dispatchEvent(new Event('storage'));
   };
 
   const t = (key: string) => {

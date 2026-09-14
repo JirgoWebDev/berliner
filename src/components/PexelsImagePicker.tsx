@@ -62,7 +62,7 @@ export function PexelsImagePicker({ isOpen, onClose, onSelect }: Props) {
             {/* Header */}
             <div className="flex items-center justify-between p-4 md:p-6 border-b border-neutral-100 bg-neutral-50/80">
               <div>
-                <h3 className="text-xl font-bold text-neutral-900">Pexels'te Görsel Ara</h3>
+                <h3 className="text-xl font-bold text-neutral-900">Pexels&apos;te Görsel Ara</h3>
                 <p className="text-sm text-neutral-500 mt-1">Stok fotoğraflar arasından seçim yapın.</p>
               </div>
               <button 

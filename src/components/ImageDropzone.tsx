@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { UploadCloud, Search, Trash2 } from 'lucide-react';
 import { PexelsImagePicker } from './PexelsImagePicker';
 
@@ -17,11 +17,11 @@ export function ImageDropzone({ name = "image", initialImageUrl }: Props) {
   
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (initialImageUrl) {
-      setPreview(initialImageUrl);
-    }
-  }, [initialImageUrl]);
+  const [prevInitial, setPrevInitial] = useState(initialImageUrl);
+  if (initialImageUrl !== prevInitial) {
+    setPrevInitial(initialImageUrl);
+    setPreview(initialImageUrl || null);
+  }
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -129,7 +129,7 @@ export function ImageDropzone({ name = "image", initialImageUrl }: Props) {
           className="flex items-center gap-2 text-xs font-bold text-[#e3372c] bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors w-full justify-center"
         >
           <Search className="w-4 h-4" />
-          Pexels'te Ara
+          Pexels&apos;te Ara
         </button>
       </div>
 

@@ -78,7 +78,7 @@ export default async function FeedbackPage() {
                 </div>
                 {feedback.comment ? (
                   <p className="text-neutral-700 leading-relaxed bg-neutral-100/50 p-4 rounded-xl border border-neutral-200/50">
-                    "{feedback.comment}"
+                    &quot;{feedback.comment}&quot;
                   </p>
                 ) : (
                   <p className="text-neutral-400 italic text-sm">

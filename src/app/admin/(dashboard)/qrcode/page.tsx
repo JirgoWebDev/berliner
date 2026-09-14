@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import QRCode from 'qrcode';
 import { Download } from 'lucide-react';
 
@@ -10,9 +10,7 @@ export default function QRCodePage() {
 
   useEffect(() => {
     // Get the base URL dynamically based on where it's hosted
-    const baseUrl = window.location.origin;
-    const fullUrl = `${baseUrl}`;
-    setMenuUrl(fullUrl);
+    const fullUrl = window.location.origin;
 
     QRCode.toDataURL(fullUrl, {
       width: 800,
@@ -22,6 +20,7 @@ export default function QRCodePage() {
         light: '#ffffff'
       }
     }).then(url => {
+      setMenuUrl(fullUrl);
       setQrUrl(url);
     });
   }, []);

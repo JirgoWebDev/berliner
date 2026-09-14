@@ -1,5 +1,14 @@
 'use server';
 
+interface PexelsPhoto {
+  id: number;
+  src: {
+    medium: string;
+    large: string;
+  };
+  alt: string;
+}
+
 export async function searchPexelsImages(query: string, perPage = 15) {
   const apiKey = process.env.PEXELS_API_KEY;
   
@@ -26,7 +35,7 @@ export async function searchPexelsImages(query: string, perPage = 15) {
     const data = await res.json();
     
     // We map the relevant fields to avoid sending unnecessary large data to the client
-    const photos = data.photos.map((photo: any) => ({
+    const photos = data.photos.map((photo: PexelsPhoto) => ({
       id: photo.id,
       src: photo.src.medium, // the image URL we'll use for thumbnails
       largeSrc: photo.src.large, // the image URL we'll save in the database
@@ -34,7 +43,8 @@ export async function searchPexelsImages(query: string, perPage = 15) {
     }));
 
     return { success: true, photos };
-  } catch (error: any) {
-    return { success: false, error: error?.message || 'Network error while fetching from Pexels.' };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Network error while fetching from Pexels.';
+    return { success: false, error: message };
   }
 }

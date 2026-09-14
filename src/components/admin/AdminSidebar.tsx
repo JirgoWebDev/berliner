@@ -6,6 +6,40 @@ import { usePathname } from 'next/navigation';
 import { LayoutDashboard, Utensils, Tag, QrCode, Star, Menu, X, LogOut } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 
+const links = [
+  { href: '/admin/dashboard', label: 'Özet', icon: LayoutDashboard },
+  { href: '/admin/categories', label: 'Kategoriler', icon: Tag },
+  { href: '/admin/products', label: 'Ürünler', icon: Utensils },
+  { href: '/admin/feedback', label: 'Değerlendirmeler', icon: Star },
+  { href: '/admin/qrcode', label: 'QR Kod', icon: QrCode },
+];
+
+function NavLinks({ pathname, onClose }: { pathname: string; onClose: () => void }) {
+  return (
+    <>
+      {links.map((link) => {
+        const Icon = link.icon;
+        const isActive = pathname === link.href || (link.href === '/admin/dashboard' && pathname === '/admin');
+        return (
+          <Link 
+            key={link.href} 
+            href={link.href}
+            onClick={onClose}
+            className={`flex items-center gap-3 px-4 py-3 md:py-2.5 rounded-xl transition-all ${
+              isActive 
+                ? 'bg-[#e3372c] text-white font-bold shadow-sm' 
+                : 'text-neutral-700 hover:bg-neutral-100 hover:text-neutral-900 font-medium'
+            }`}
+          >
+            <Icon className="w-5 h-5" />
+            {link.label}
+          </Link>
+        );
+      })}
+    </>
+  );
+}
+
 export function AdminSidebar() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
@@ -21,38 +55,6 @@ export function AdminSidebar() {
       document.body.style.overflow = 'unset';
     };
   }, [isOpen]);
-
-  const links = [
-    { href: '/admin', label: 'Özet', icon: LayoutDashboard },
-    { href: '/admin/categories', label: 'Kategoriler', icon: Tag },
-    { href: '/admin/products', label: 'Ürünler', icon: Utensils },
-    { href: '/admin/feedback', label: 'Değerlendirmeler', icon: Star },
-    { href: '/admin/qrcode', label: 'QR Kod', icon: QrCode },
-  ];
-
-  const NavLinks = () => (
-    <>
-      {links.map((link) => {
-        const Icon = link.icon;
-        const isActive = pathname === link.href;
-        return (
-          <Link 
-            key={link.href} 
-            href={link.href}
-            onClick={() => setIsOpen(false)}
-            className={`flex items-center gap-3 px-4 py-3 md:py-2.5 rounded-xl transition-all ${
-              isActive 
-                ? 'bg-[#e3372c] text-white font-bold shadow-sm' 
-                : 'text-neutral-700 hover:bg-neutral-100 hover:text-neutral-900 font-medium'
-            }`}
-          >
-            <Icon className="w-5 h-5" />
-            {link.label}
-          </Link>
-        );
-      })}
-    </>
-  );
 
   return (
     <>
@@ -92,7 +94,7 @@ export function AdminSidebar() {
         </div>
         
         <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
-          <NavLinks />
+          <NavLinks pathname={pathname} onClose={() => setIsOpen(false)} />
         </nav>
         
         <div className="p-4 border-t border-neutral-200 shrink-0">

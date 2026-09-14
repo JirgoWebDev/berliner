@@ -2,33 +2,36 @@
 
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { AtSign, KeyRound, ArrowRight, ChefHat, ShieldCheck } from 'lucide-react';
+import { AtSign, KeyRound, ArrowRight, ShieldCheck } from 'lucide-react';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
-    const res = await signIn('credentials', {
-      redirect: false,
-      username,
-      password,
-    });
+    try {
+      const res = await signIn('credentials', {
+        redirect: false,
+        username,
+        password,
+      });
 
-    if (res?.error) {
-      setError('Hatalı kullanıcı adı veya şifre.');
+      if (res?.error) {
+        setError('Hatalı kullanıcı adı veya şifre.');
+        setLoading(false);
+      } else {
+        window.location.href = '/admin/dashboard';
+      }
+    } catch (err) {
+      console.error(err);
+      setError('Giriş yapılırken bir hata oluştu.');
       setLoading(false);
-    } else {
-      router.push('/admin/dashboard');
-      router.refresh();
     }
   };
 
