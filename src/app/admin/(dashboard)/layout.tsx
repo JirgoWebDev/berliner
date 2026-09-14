@@ -8,7 +8,16 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await auth();
+  let session = null;
+  try {
+    session = await auth();
+  } catch (error: unknown) {
+    const err = error as { digest?: string; message?: string };
+    if (err?.digest === 'DYNAMIC_SERVER_USAGE' || err?.message?.includes('Dynamic server usage')) {
+      throw error;
+    }
+    console.error('Session retrieval error:', error);
+  }
 
   if (!session) {
     redirect('/admin/login');

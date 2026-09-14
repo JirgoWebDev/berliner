@@ -6,6 +6,9 @@ const nextConfig: NextConfig = {
       bodySizeLimit: '10mb',
     },
   },
+  outputFileTracingIncludes: {
+    '/**': ['./dev.db'],
+  },
 };
 
 export default nextConfig;
