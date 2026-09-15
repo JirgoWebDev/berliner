@@ -14,43 +14,51 @@ export default async function CategoriesPage() {
 
   async function addCategory(formData: FormData) {
     'use server';
-    const name_tr = formData.get('name_tr') as string;
-    const name_en = formData.get('name_en') as string;
-    const imageFile = formData.get('image') as File | null;
-    const pexelsUrl = formData.get('pexelsUrl') as string | null;
-    
-    let imageUrl = null;
+    try {
+      const name_tr = formData.get('name_tr') as string;
+      const name_en = formData.get('name_en') as string;
+      const imageFile = formData.get('image') as File | null;
+      const pexelsUrl = formData.get('pexelsUrl') as string | null;
+      
+      let imageUrl = null;
 
-    if (pexelsUrl) {
-      // If a Pexels image was selected, use its URL directly
-      imageUrl = pexelsUrl;
-    } else if (imageFile && imageFile.size > 0) {
-      imageUrl = await uploadImageToCloudinary(imageFile);
-    }
-    
-    if (name_tr && name_en) {
-      const maxCat = await prisma.category.findFirst({ orderBy: { order: 'desc' } });
-      const nextOrder = maxCat ? maxCat.order + 1 : 0;
+      if (pexelsUrl) {
+        // If a Pexels image was selected, use its URL directly
+        imageUrl = pexelsUrl;
+      } else if (imageFile && imageFile.size > 0) {
+        imageUrl = await uploadImageToCloudinary(imageFile);
+      }
+      
+      if (name_tr && name_en) {
+        const maxCat = await prisma.category.findFirst({ orderBy: { order: 'desc' } });
+        const nextOrder = maxCat ? maxCat.order + 1 : 0;
 
-      await prisma.category.create({
-        data: { 
-          name_tr, 
-          name_en, 
-          imageUrl,
-          order: nextOrder 
-        }
-      });
-      revalidatePath('/admin/categories');
-      revalidatePath('/menu');
+        await prisma.category.create({
+          data: { 
+            name_tr, 
+            name_en, 
+            imageUrl,
+            order: nextOrder 
+          }
+        });
+        revalidatePath('/admin/categories');
+        revalidatePath('/menu');
+      }
+    } catch (error: unknown) {
+      console.error('Add category failed:', error);
     }
   }
 
   async function deleteCategory(formData: FormData) {
     'use server';
-    const id = formData.get('id') as string;
-    await prisma.category.delete({ where: { id } });
-    revalidatePath('/admin/categories');
-    revalidatePath('/menu');
+    try {
+      const id = formData.get('id') as string;
+      await prisma.category.delete({ where: { id } });
+      revalidatePath('/admin/categories');
+      revalidatePath('/menu');
+    } catch (error: unknown) {
+      console.error('Delete category failed:', error);
+    }
   }
 
   return (

@@ -31,53 +31,61 @@ export default async function ProductsPage() {
 
   async function addProduct(formData: FormData) {
     'use server';
-    const name_tr = formData.get('name_tr') as string;
-    const name_en = formData.get('name_en') as string;
-    const categoryId = formData.get('categoryId') as string;
-    const price = parseFloat(formData.get('price') as string);
-    const description_tr = formData.get('description_tr') as string;
-    const description_en = formData.get('description_en') as string;
-    const imageFile = formData.get('image') as File | null;
-    const pexelsUrl = formData.get('pexelsUrl') as string | null;
-    
-    let imageUrl = null;
+    try {
+      const name_tr = formData.get('name_tr') as string;
+      const name_en = formData.get('name_en') as string;
+      const categoryId = formData.get('categoryId') as string;
+      const price = parseFloat(formData.get('price') as string);
+      const description_tr = formData.get('description_tr') as string;
+      const description_en = formData.get('description_en') as string;
+      const imageFile = formData.get('image') as File | null;
+      const pexelsUrl = formData.get('pexelsUrl') as string | null;
+      
+      let imageUrl = null;
 
-    if (pexelsUrl) {
-      imageUrl = pexelsUrl;
-    } else if (imageFile && imageFile.size > 0) {
-      imageUrl = await uploadImageToCloudinary(imageFile);
-    }
+      if (pexelsUrl) {
+        imageUrl = pexelsUrl;
+      } else if (imageFile && imageFile.size > 0) {
+        imageUrl = await uploadImageToCloudinary(imageFile);
+      }
 
-    if (name_tr && name_en && categoryId && !isNaN(price)) {
-      const maxProd = await prisma.product.findFirst({
-        where: { categoryId },
-        orderBy: { order: 'desc' }
-      });
-      const nextOrder = maxProd ? maxProd.order + 1 : 0;
+      if (name_tr && name_en && categoryId && !isNaN(price)) {
+        const maxProd = await prisma.product.findFirst({
+          where: { categoryId },
+          orderBy: { order: 'desc' }
+        });
+        const nextOrder = maxProd ? maxProd.order + 1 : 0;
 
-      await prisma.product.create({
-        data: { 
-          name_tr, 
-          name_en, 
-          categoryId, 
-          price, 
-          description_tr, 
-          description_en,
-          imageUrl,
-          order: nextOrder 
-        }
-      });
-      revalidatePath('/admin/products');
-      revalidatePath('/menu');
+        await prisma.product.create({
+          data: { 
+            name_tr, 
+            name_en, 
+            categoryId, 
+            price, 
+            description_tr, 
+            description_en,
+            imageUrl,
+            order: nextOrder 
+          }
+        });
+        revalidatePath('/admin/products');
+        revalidatePath('/menu');
+      }
+    } catch (error: unknown) {
+      console.error('Add product failed:', error);
     }
   }
 
   async function deleteProduct(formData: FormData) {
     'use server';
-    const id = formData.get('id') as string;
-    await prisma.product.delete({ where: { id } });
-    revalidatePath('/admin/products');
-    revalidatePath('/menu');
+    try {
+      const id = formData.get('id') as string;
+      await prisma.product.delete({ where: { id } });
+      revalidatePath('/admin/products');
+      revalidatePath('/menu');
+    } catch (error: unknown) {
+      console.error('Delete product failed:', error);
+    }
   }
 
   return (

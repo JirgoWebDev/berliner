@@ -21,29 +21,37 @@ export default async function EditCategoryPage({ params }: { params: Promise<{ i
     'use server';
     if (!category) return;
 
-    const name_tr = formData.get('name_tr') as string;
-    const name_en = formData.get('name_en') as string;
-    const orderInput = formData.get('order') as string;
-    const order = orderInput ? parseInt(orderInput, 10) : category.order;
-    const imageFile = formData.get('image') as File | null;
-    const pexelsUrl = formData.get('pexelsUrl') as string | null;
-    
-    let imageUrl = category.imageUrl; // Keep old image by default
+    try {
+      const name_tr = formData.get('name_tr') as string;
+      const name_en = formData.get('name_en') as string;
+      const orderInput = formData.get('order') as string;
+      const order = orderInput ? parseInt(orderInput, 10) : category.order;
+      const imageFile = formData.get('image') as File | null;
+      const pexelsUrl = formData.get('pexelsUrl') as string | null;
+      
+      let imageUrl = category.imageUrl; // Keep old image by default
 
-    if (pexelsUrl) {
-      imageUrl = pexelsUrl;
-    } else if (imageFile && imageFile.size > 0) {
-      imageUrl = await uploadImageToCloudinary(imageFile);
-    }
+      if (pexelsUrl) {
+        imageUrl = pexelsUrl;
+      } else if (imageFile && imageFile.size > 0) {
+        imageUrl = await uploadImageToCloudinary(imageFile);
+      }
 
-    if (name_tr && name_en) {
-      await prisma.category.update({
-        where: { id },
-        data: { name_tr, name_en, imageUrl, order: isNaN(order) ? category.order : order }
-      });
-      revalidatePath('/admin/categories');
-      revalidatePath('/menu');
-      redirect('/admin/categories');
+      if (name_tr && name_en) {
+        await prisma.category.update({
+          where: { id },
+          data: { name_tr, name_en, imageUrl, order: isNaN(order) ? category.order : order }
+        });
+        revalidatePath('/admin/categories');
+        revalidatePath('/menu');
+        redirect('/admin/categories');
+      }
+    } catch (error: unknown) {
+      const err = error as { digest?: string };
+      if (err?.digest?.startsWith('NEXT_REDIRECT')) {
+        throw error;
+      }
+      console.error('Update category failed:', error);
     }
   }
 
