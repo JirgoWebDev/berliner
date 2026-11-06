@@ -1,47 +1,55 @@
 import prisma from '@/lib/prisma';
-import type { Category } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
-import { Trash2, FolderPlus, Image as ImageIcon, Layers, Pencil, ArrowUp, ArrowDown } from 'lucide-react';
+import { FolderPlus, Image as ImageIcon, Layers, Pencil, ArrowUp, ArrowDown } from 'lucide-react';
 import { uploadImageToCloudinary } from '@/lib/cloudinary';
 import { ImageDropzone } from '@/components/ImageDropzone';
 import { reorderCategory } from '@/app/actions/reorder';
+import { DeleteButton } from '@/components/admin/DeleteButton';
 import Link from 'next/link';
 
 export default async function CategoriesPage() {
   const categories = await prisma.category.findMany({
-    orderBy: { order: 'asc' }
+    orderBy: { order: 'asc' },
+    include: {
+      _count: {
+        select: { products: true }
+      }
+    }
   });
 
   async function addCategory(formData: FormData) {
     'use server';
     try {
       const name_tr = formData.get('name_tr') as string;
-      const name_en = formData.get('name_en') as string;
+      const raw_name_en = formData.get('name_en') as string;
       const imageFile = formData.get('image') as File | null;
       const pexelsUrl = formData.get('pexelsUrl') as string | null;
       
-      let imageUrl = null;
+      const name_en = raw_name_en && raw_name_en.trim().length > 0 ? raw_name_en.trim() : name_tr?.trim() || '';
+
+      let imageUrl: string | null = null;
 
       if (pexelsUrl) {
-        // If a Pexels image was selected, use its URL directly
         imageUrl = pexelsUrl;
       } else if (imageFile && imageFile.size > 0) {
         imageUrl = await uploadImageToCloudinary(imageFile);
       }
       
-      if (name_tr && name_en) {
+      if (name_tr && name_tr.trim().length > 0) {
         const maxCat = await prisma.category.findFirst({ orderBy: { order: 'desc' } });
         const nextOrder = maxCat ? maxCat.order + 1 : 0;
 
         await prisma.category.create({
           data: { 
-            name_tr, 
-            name_en, 
-            imageUrl,
+            name_tr: name_tr.trim(), 
+            name_en: name_en, 
+            imageUrl, 
             order: nextOrder 
           }
         });
         revalidatePath('/admin/categories');
+        revalidatePath('/admin/dashboard');
+        revalidatePath('/admin/products');
         revalidatePath('/menu');
       }
     } catch (error: unknown) {
@@ -53,8 +61,11 @@ export default async function CategoriesPage() {
     'use server';
     try {
       const id = formData.get('id') as string;
+      if (!id) return;
       await prisma.category.delete({ where: { id } });
       revalidatePath('/admin/categories');
+      revalidatePath('/admin/dashboard');
+      revalidatePath('/admin/products');
       revalidatePath('/menu');
     } catch (error: unknown) {
       console.error('Delete category failed:', error);
@@ -102,14 +113,13 @@ export default async function CategoriesPage() {
 
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-neutral-600 mb-1.5">
-              Kategori Adı (EN) *
+              Kategori Adı (EN) <span className="text-neutral-400 font-normal lowercase">(isteğe bağlı)</span>
             </label>
             <input 
-              required 
               name="name_en" 
               type="text" 
               className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-2.5 text-sm text-neutral-900 focus:outline-none focus:border-[#e3372c] focus:bg-white transition-all" 
-              placeholder="Ex: Hot Drinks" 
+              placeholder="Boş bırakılırsa Türkçe isim kullanılır" 
             />
           </div>
 
@@ -123,7 +133,7 @@ export default async function CategoriesPage() {
           <div className="md:col-span-3 flex justify-end mt-2">
             <button 
               type="submit" 
-              className="bg-[#e3372c] text-white px-8 py-3 rounded-xl font-bold text-sm hover:bg-red-700 transition-colors shadow-md hover:shadow-lg active:scale-[0.99] transition-transform"
+              className="bg-[#e3372c] text-white px-8 py-3 rounded-xl font-bold text-sm hover:bg-red-700 transition-colors shadow-md hover:shadow-lg active:scale-[0.99] transition-transform cursor-pointer"
             >
               Kategoriyi Kaydet
             </button>
@@ -141,6 +151,7 @@ export default async function CategoriesPage() {
                 <th className="px-4 md:px-6 py-3 md:py-4 w-14 md:w-16">Görsel</th>
                 <th className="px-4 md:px-6 py-3 md:py-4">TR İsim</th>
                 <th className="px-4 md:px-6 py-3 md:py-4">EN İsim</th>
+                <th className="px-4 md:px-6 py-3 md:py-4 text-center">Ürün Sayısı</th>
                 <th className="px-4 md:px-6 py-3 md:py-4 w-52 text-right">İşlemler</th>
               </tr>
             </thead>
@@ -170,6 +181,11 @@ export default async function CategoriesPage() {
                   </td>
                   <td className="px-6 py-4 font-medium text-neutral-500">
                     {cat.name_en}
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-neutral-100 text-neutral-700">
+                      {cat._count.products} Ürün
+                    </span>
                   </td>
                   <td className="px-6 py-4 text-right whitespace-nowrap">
                     <div className="flex items-center justify-end gap-2">
@@ -206,17 +222,14 @@ export default async function CategoriesPage() {
                         <Pencil className="w-5 h-5" />
                       </Link>
 
-                      {/* Sil */}
-                      <form action={deleteCategory} className="inline-block">
-                        <input type="hidden" name="id" value={cat.id} />
-                        <button 
-                          type="submit" 
-                          className="p-2.5 rounded-xl bg-rose-50 text-rose-600 border border-rose-100 hover:bg-rose-600 hover:text-white hover:border-rose-600 hover:shadow-md hover:shadow-rose-500/20 hover:scale-105 hover:rotate-3 active:scale-90 transition-all duration-200 cursor-pointer"
-                          title="Kategoriyi Sil"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
-                      </form>
+                      {/* Sil (Onay Korumalı) */}
+                      <DeleteButton
+                        action={deleteCategory}
+                        id={cat.id}
+                        confirmMessage={`"${cat.name_tr}" kategorisini ve bu kategoriye ait ${cat._count.products} ürünü tamamen silmek istediğinize emin misiniz?`}
+                        title="Kategoriyi Sil"
+                        className="p-2.5 rounded-xl bg-rose-50 text-rose-600 border border-rose-100 hover:bg-rose-600 hover:text-white hover:border-rose-600 hover:shadow-md hover:shadow-rose-500/20 hover:scale-105 hover:rotate-3 active:scale-90 transition-all duration-200 cursor-pointer"
+                      />
                     </div>
                   </td>
                 </tr>
@@ -224,7 +237,7 @@ export default async function CategoriesPage() {
 
               {categories.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-neutral-400">
+                  <td colSpan={6} className="px-6 py-12 text-center text-neutral-400">
                     <Layers className="w-10 h-10 mx-auto mb-3 text-neutral-300" />
                     Henüz hiçbir kategori eklenmemiş.
                   </td>

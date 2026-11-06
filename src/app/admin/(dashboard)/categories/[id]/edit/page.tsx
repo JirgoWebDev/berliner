@@ -23,12 +23,14 @@ export default async function EditCategoryPage({ params }: { params: Promise<{ i
 
     try {
       const name_tr = formData.get('name_tr') as string;
-      const name_en = formData.get('name_en') as string;
+      const raw_name_en = formData.get('name_en') as string;
       const orderInput = formData.get('order') as string;
       const order = orderInput ? parseInt(orderInput, 10) : category.order;
       const imageFile = formData.get('image') as File | null;
       const pexelsUrl = formData.get('pexelsUrl') as string | null;
       
+      const name_en = raw_name_en && raw_name_en.trim().length > 0 ? raw_name_en.trim() : name_tr?.trim() || '';
+
       let imageUrl = category.imageUrl; // Keep old image by default
 
       if (pexelsUrl) {
@@ -37,12 +39,19 @@ export default async function EditCategoryPage({ params }: { params: Promise<{ i
         imageUrl = await uploadImageToCloudinary(imageFile);
       }
 
-      if (name_tr && name_en) {
+      if (name_tr && name_tr.trim().length > 0) {
         await prisma.category.update({
           where: { id },
-          data: { name_tr, name_en, imageUrl, order: isNaN(order) ? category.order : order }
+          data: { 
+            name_tr: name_tr.trim(), 
+            name_en: name_en, 
+            imageUrl, 
+            order: isNaN(order) ? category.order : order 
+          }
         });
         revalidatePath('/admin/categories');
+        revalidatePath('/admin/dashboard');
+        revalidatePath('/admin/products');
         revalidatePath('/menu');
         redirect('/admin/categories');
       }
@@ -86,13 +95,13 @@ export default async function EditCategoryPage({ params }: { params: Promise<{ i
 
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-neutral-600 mb-1.5">
-              Kategori Adı (EN) *
+              Kategori Adı (EN) <span className="text-neutral-400 font-normal lowercase">(isteğe bağlı)</span>
             </label>
             <input 
-              required 
               name="name_en" 
               type="text" 
               defaultValue={category.name_en}
+              placeholder="Boş bırakılırsa Türkçe isim kullanılır"
               className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-2.5 text-sm text-neutral-900 focus:outline-none focus:border-[#e3372c] focus:bg-white transition-all" 
             />
           </div>
@@ -126,7 +135,7 @@ export default async function EditCategoryPage({ params }: { params: Promise<{ i
           <div className="md:col-span-2 flex justify-end mt-4 pt-4 border-t border-neutral-100">
             <button 
               type="submit" 
-              className="flex items-center gap-2 bg-[#e3372c] text-white px-8 py-3 rounded-xl font-bold text-sm hover:bg-red-700 transition-colors shadow-md hover:shadow-lg active:scale-[0.99] transition-transform"
+              className="flex items-center gap-2 bg-[#e3372c] text-white px-8 py-3 rounded-xl font-bold text-sm hover:bg-red-700 transition-colors shadow-md hover:shadow-lg active:scale-[0.99] transition-transform cursor-pointer"
             >
               <Save className="w-5 h-5" />
               Değişiklikleri Kaydet

@@ -1,6 +1,5 @@
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["driverAdapters"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -46,4 +45,3 @@ model Feedback {
   comment   String?
   createdAt DateTime @default(now())
 }
-

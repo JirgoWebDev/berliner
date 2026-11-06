@@ -42,6 +42,7 @@ export async function reorderCategory(id: string, direction: 'up' | 'down') {
 
   revalidatePath('/admin/categories');
   revalidatePath('/admin/products');
+  revalidatePath('/admin/dashboard');
   revalidatePath('/menu');
 }
 
@@ -56,6 +57,7 @@ export async function updateCategoryOrder(id: string, newOrder: number) {
 
   revalidatePath('/admin/categories');
   revalidatePath('/admin/products');
+  revalidatePath('/admin/dashboard');
   revalidatePath('/menu');
 }
 
@@ -102,6 +104,7 @@ export async function reorderProduct(id: string, direction: 'up' | 'down') {
   ]);
 
   revalidatePath('/admin/products');
+  revalidatePath('/admin/dashboard');
   revalidatePath('/menu');
 }
 
@@ -115,5 +118,6 @@ export async function updateProductOrder(id: string, newOrder: number) {
   });
 
   revalidatePath('/admin/products');
+  revalidatePath('/admin/dashboard');
   revalidatePath('/menu');
 }

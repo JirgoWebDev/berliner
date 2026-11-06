@@ -26,7 +26,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
 
     try {
       const name_tr = formData.get('name_tr') as string;
-      const name_en = formData.get('name_en') as string;
+      const raw_name_en = formData.get('name_en') as string;
       const categoryId = formData.get('categoryId') as string;
       const price = parseFloat(formData.get('price') as string);
       const orderInput = formData.get('order') as string;
@@ -35,6 +35,9 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
       const description_en = formData.get('description_en') as string;
       const imageFile = formData.get('image') as File | null;
       const pexelsUrl = formData.get('pexelsUrl') as string | null;
+      const isAvailable = formData.get('isAvailable') === 'on' || formData.get('isAvailable') === 'true';
+
+      const name_en = raw_name_en && raw_name_en.trim().length > 0 ? raw_name_en.trim() : name_tr?.trim() || '';
 
       let imageUrl = product.imageUrl; // Keep old image by default
 
@@ -44,21 +47,23 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
         imageUrl = await uploadImageToCloudinary(imageFile);
       }
 
-      if (name_tr && name_en && categoryId && !isNaN(price)) {
+      if (name_tr && categoryId && !isNaN(price)) {
         await prisma.product.update({
           where: { id },
           data: {
-            name_tr,
-            name_en,
+            name_tr: name_tr.trim(),
+            name_en: name_en,
             categoryId,
             price,
-            description_tr,
-            description_en,
+            description_tr: description_tr?.trim() || null,
+            description_en: description_en?.trim() || null,
             imageUrl,
+            isAvailable,
             order: isNaN(order) ? product.order : order
           }
         });
         revalidatePath('/admin/products');
+        revalidatePath('/admin/dashboard');
         revalidatePath('/menu');
         redirect('/admin/products');
       }
@@ -134,13 +139,13 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
 
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-neutral-600 mb-1.5">
-              Ürün Adı (EN) *
+              Ürün Adı (EN) <span className="text-neutral-400 font-normal lowercase">(isteğe bağlı)</span>
             </label>
             <input
-              required
               name="name_en"
               type="text"
               defaultValue={product.name_en}
+              placeholder="Boş bırakılırsa Türkçe isim kullanılır"
               className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-2.5 text-sm text-neutral-900 focus:outline-none focus:border-[#e3372c] focus:bg-white transition-all"
             />
           </div>
@@ -156,6 +161,20 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
               className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-2.5 text-sm text-neutral-900 focus:outline-none focus:border-[#e3372c] focus:bg-white transition-all"
             />
             <p className="text-xs text-neutral-400 mt-1">Ürünün kendi kategorisi içindeki gösterim sırası (Küçük olan önce görünür).</p>
+          </div>
+
+          {/* Menü Durumu Checkbox */}
+          <div className="md:col-span-2 flex items-center gap-3 p-3 bg-neutral-50 rounded-xl border border-neutral-200">
+            <input
+              type="checkbox"
+              name="isAvailable"
+              id="isAvailable"
+              defaultChecked={product.isAvailable}
+              className="w-5 h-5 text-[#e3372c] rounded focus:ring-[#e3372c] cursor-pointer"
+            />
+            <label htmlFor="isAvailable" className="text-sm font-semibold text-neutral-700 cursor-pointer">
+              Menüde Yayınla (Stokta Var - İşaret kaldırılırsa menüden çıkarılır)
+            </label>
           </div>
 
           <div>
@@ -198,7 +217,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
           <div className="md:col-span-2 flex justify-end mt-4 pt-4 border-t border-neutral-100">
             <button
               type="submit"
-              className="flex items-center gap-2 bg-[#e3372c] text-white px-8 py-3 rounded-xl font-bold text-sm hover:bg-red-700 transition-colors shadow-md hover:shadow-lg active:scale-[0.99] transition-transform"
+              className="flex items-center gap-2 bg-[#e3372c] text-white px-8 py-3 rounded-xl font-bold text-sm hover:bg-red-700 transition-colors shadow-md hover:shadow-lg active:scale-[0.99] transition-transform cursor-pointer"
             >
               <Save className="w-5 h-5" />
               Değişiklikleri Kaydet

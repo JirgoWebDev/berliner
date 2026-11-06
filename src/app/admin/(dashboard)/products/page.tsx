@@ -1,9 +1,11 @@
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
-import { Trash2, PackagePlus, Image as ImageIcon, UtensilsCrossed, Tag, Pencil, ArrowUp, ArrowDown } from 'lucide-react';
+import { PackagePlus, Image as ImageIcon, UtensilsCrossed, Tag, Pencil, ArrowUp, ArrowDown } from 'lucide-react';
 import { uploadImageToCloudinary } from '@/lib/cloudinary';
 import { ImageDropzone } from '@/components/ImageDropzone';
 import { reorderProduct } from '@/app/actions/reorder';
+import { DeleteButton } from '@/components/admin/DeleteButton';
+import { AvailabilityToggle } from '@/components/admin/AvailabilityToggle';
 import Link from 'next/link';
 
 export default async function ProductsPage() {
@@ -33,15 +35,18 @@ export default async function ProductsPage() {
     'use server';
     try {
       const name_tr = formData.get('name_tr') as string;
-      const name_en = formData.get('name_en') as string;
+      const raw_name_en = formData.get('name_en') as string;
       const categoryId = formData.get('categoryId') as string;
       const price = parseFloat(formData.get('price') as string);
       const description_tr = formData.get('description_tr') as string;
       const description_en = formData.get('description_en') as string;
       const imageFile = formData.get('image') as File | null;
       const pexelsUrl = formData.get('pexelsUrl') as string | null;
+      const isAvailable = formData.get('isAvailable') === 'on' || formData.get('isAvailable') === 'true';
       
-      let imageUrl = null;
+      const name_en = raw_name_en && raw_name_en.trim().length > 0 ? raw_name_en.trim() : name_tr?.trim() || '';
+
+      let imageUrl: string | null = null;
 
       if (pexelsUrl) {
         imageUrl = pexelsUrl;
@@ -49,7 +54,7 @@ export default async function ProductsPage() {
         imageUrl = await uploadImageToCloudinary(imageFile);
       }
 
-      if (name_tr && name_en && categoryId && !isNaN(price)) {
+      if (name_tr && categoryId && !isNaN(price)) {
         const maxProd = await prisma.product.findFirst({
           where: { categoryId },
           orderBy: { order: 'desc' }
@@ -58,17 +63,19 @@ export default async function ProductsPage() {
 
         await prisma.product.create({
           data: { 
-            name_tr, 
-            name_en, 
+            name_tr: name_tr.trim(), 
+            name_en: name_en, 
             categoryId, 
             price, 
-            description_tr, 
-            description_en,
+            description_tr: description_tr?.trim() || null, 
+            description_en: description_en?.trim() || null,
             imageUrl,
+            isAvailable,
             order: nextOrder 
           }
         });
         revalidatePath('/admin/products');
+        revalidatePath('/admin/dashboard');
         revalidatePath('/menu');
       }
     } catch (error: unknown) {
@@ -80,8 +87,10 @@ export default async function ProductsPage() {
     'use server';
     try {
       const id = formData.get('id') as string;
+      if (!id) return;
       await prisma.product.delete({ where: { id } });
       revalidatePath('/admin/products');
+      revalidatePath('/admin/dashboard');
       revalidatePath('/menu');
     } catch (error: unknown) {
       console.error('Delete product failed:', error);
@@ -98,11 +107,13 @@ export default async function ProductsPage() {
             Ürün Yönetimi
           </h2>
           <p className="text-neutral-500 text-sm mt-1">
-            Menünüzdeki tüm lezzetleri ekleyin, sıralayın, fiyatlandırın ve görsellerini güncelleyin.
+            Menünüzdeki ürünleri ekleyin, düzenleyin, sırasını değiştirin veya menüden çıkarıp aktif edin.
           </p>
         </div>
-        <div className="bg-red-50 text-[#e3372c] font-semibold px-4 py-2 rounded-full text-xs md:text-sm border border-red-100 self-start sm:self-auto">
-          Toplam: {products.length} Ürün
+        <div className="flex items-center gap-2">
+          <div className="bg-red-50 text-[#e3372c] font-semibold px-4 py-2 rounded-full text-xs md:text-sm border border-red-100">
+            Toplam: {products.length} Ürün
+          </div>
         </div>
       </div>
       
@@ -164,14 +175,13 @@ export default async function ProductsPage() {
           {/* Ürün Adı (EN) */}
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-neutral-600 mb-1.5">
-              Ürün Adı (EN) *
+              Ürün Adı (EN) <span className="text-neutral-400 font-normal lowercase">(isteğe bağlı)</span>
             </label>
             <input 
-              required 
               name="name_en" 
               type="text" 
               className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-2.5 text-sm text-neutral-900 focus:outline-none focus:border-[#e3372c] focus:bg-white transition-all" 
-              placeholder="Ex: Chocolate Berliner" 
+              placeholder="Boş bırakılırsa Türkçe isim kullanılır" 
             />
           </div>
 
@@ -209,11 +219,25 @@ export default async function ProductsPage() {
             <ImageDropzone name="image" />
           </div>
 
+          {/* Durum Checkbox */}
+          <div className="md:col-span-2 flex items-center gap-3 p-3 bg-neutral-50 rounded-xl border border-neutral-200">
+            <input
+              type="checkbox"
+              name="isAvailable"
+              id="isAvailable"
+              defaultChecked
+              className="w-5 h-5 text-[#e3372c] rounded focus:ring-[#e3372c] cursor-pointer"
+            />
+            <label htmlFor="isAvailable" className="text-sm font-semibold text-neutral-700 cursor-pointer">
+              Bu ürünü hemen menüde yayınla (Stokta Var)
+            </label>
+          </div>
+
           {/* Kaydet Butonu */}
           <div className="md:col-span-2 flex justify-end mt-2">
             <button 
               type="submit" 
-              className="bg-[#e3372c] text-white px-8 py-3 rounded-xl font-bold text-sm hover:bg-red-700 transition-colors shadow-md hover:shadow-lg active:scale-[0.99] transition-transform"
+              className="bg-[#e3372c] text-white px-8 py-3 rounded-xl font-bold text-sm hover:bg-red-700 transition-colors shadow-md hover:shadow-lg active:scale-[0.99] transition-transform cursor-pointer"
             >
               Ürünü Kaydet
             </button>
@@ -224,15 +248,16 @@ export default async function ProductsPage() {
       {/* Ürün Listesi Tablosu */}
       <div className="bg-white rounded-2xl border border-neutral-200/80 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[700px]">
+          <table className="w-full text-left border-collapse min-w-[750px]">
             <thead>
               <tr className="bg-neutral-50/80 border-b border-neutral-200 text-[10px] md:text-xs uppercase tracking-wider font-bold text-neutral-500">
-                <th className="px-4 md:px-6 py-3 md:py-4 w-20 text-center">Kat. Sırası</th>
+                <th className="px-4 md:px-6 py-3 md:py-4 w-20 text-center">Sıra</th>
                 <th className="px-4 md:px-6 py-3 md:py-4 w-16">Görsel</th>
                 <th className="px-4 md:px-6 py-3 md:py-4">Ürün Adı</th>
                 <th className="px-4 md:px-6 py-3 md:py-4">Kategori</th>
                 <th className="px-4 md:px-6 py-3 md:py-4">Fiyat</th>
-                <th className="px-4 md:px-6 py-3 md:py-4 w-48 text-right">İşlemler</th>
+                <th className="px-4 md:px-6 py-3 md:py-4 text-center">Durum</th>
+                <th className="px-4 md:px-6 py-3 md:py-4 w-52 text-right">İşlemler</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100 text-sm">
@@ -242,7 +267,7 @@ export default async function ProductsPage() {
                 const totalInCategory = categoryList.length;
 
                 return (
-                  <tr key={prod.id} className="hover:bg-neutral-50/50 transition-colors">
+                  <tr key={prod.id} className={`hover:bg-neutral-50/50 transition-colors ${!prod.isAvailable ? 'opacity-60 bg-neutral-50/30' : ''}`}>
                     <td className="px-4 md:px-6 py-4 text-center">
                       <span className="font-extrabold text-xs bg-red-50 text-[#e3372c] px-3 py-1.5 rounded-xl border border-red-100 shadow-xs inline-block">
                         #{indexInCategory + 1}
@@ -273,8 +298,28 @@ export default async function ProductsPage() {
                     <td className="px-6 py-4 font-extrabold text-neutral-900 text-base">
                       {prod.price.toFixed(2)} ₺
                     </td>
+                    <td className="px-6 py-4 text-center whitespace-nowrap">
+                      {prod.isAvailable ? (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                          Menüde Aktif
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-neutral-100 text-neutral-500 border border-neutral-300">
+                          <span className="w-2 h-2 rounded-full bg-neutral-400"></span>
+                          Menüden Çıkarıldı
+                        </span>
+                      )}
+                    </td>
                     <td className="px-6 py-4 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end gap-1.5">
+                        {/* Menüde Göster / Menüden Çıkar Hızlı Butonu */}
+                        <AvailabilityToggle
+                          productId={prod.id}
+                          initialAvailable={prod.isAvailable}
+                        />
+
+                        {/* Yukarı Taşı */}
                         <form action={reorderProduct.bind(null, prod.id, 'up')} className="inline-block">
                           <button
                             type="submit"
@@ -286,6 +331,7 @@ export default async function ProductsPage() {
                           </button>
                         </form>
 
+                        {/* Aşağı Taşı */}
                         <form action={reorderProduct.bind(null, prod.id, 'down')} className="inline-block">
                           <button
                             type="submit"
@@ -297,6 +343,7 @@ export default async function ProductsPage() {
                           </button>
                         </form>
 
+                        {/* Düzenle */}
                         <Link 
                           href={`/admin/products/${prod.id}/edit`}
                           className="p-2 text-neutral-600 hover:text-blue-600 hover:bg-blue-50 border border-neutral-200 rounded-xl transition-all"
@@ -305,16 +352,13 @@ export default async function ProductsPage() {
                           <Pencil className="w-5 h-5" />
                         </Link>
 
-                        <form action={deleteProduct} className="inline-block">
-                          <input type="hidden" name="id" value={prod.id} />
-                          <button 
-                            type="submit" 
-                            className="p-2 text-neutral-600 hover:text-red-600 hover:bg-red-50 border border-neutral-200 rounded-xl transition-all cursor-pointer"
-                            title="Ürünü Sil"
-                          >
-                            <Trash2 className="w-5 h-5" />
-                          </button>
-                        </form>
+                        {/* Sil (Onay Korumalı) */}
+                        <DeleteButton
+                          action={deleteProduct}
+                          id={prod.id}
+                          confirmMessage={`"${prod.name_tr}" ürününü silmek istediğinize emin misiniz?`}
+                          title="Ürünü Sil"
+                        />
                       </div>
                     </td>
                   </tr>
@@ -323,7 +367,7 @@ export default async function ProductsPage() {
 
               {products.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-neutral-400">
+                  <td colSpan={7} className="px-6 py-12 text-center text-neutral-400">
                     <UtensilsCrossed className="w-10 h-10 mx-auto mb-3 text-neutral-300" />
                     Henüz hiçbir ürün eklenmemiş.
                   </td>
