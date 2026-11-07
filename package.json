@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "tsx scripts/prebuild.ts && next build",
     "postinstall": "prisma generate",
     "db:sync-turso": "tsx scripts/sync-turso.ts",
     "start": "next start",

@@ -1,10 +1,18 @@
 import prisma from '@/lib/prisma';
 import { Star, MessageSquare } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 export default async function FeedbackPage() {
-  const feedbacks = await prisma.feedback.findMany({
-    orderBy: { createdAt: 'desc' }
-  });
+  let feedbacks: Array<{ id: string; rating: number; comment: string | null; createdAt: Date }> = [];
+
+  try {
+    feedbacks = await prisma.feedback.findMany({
+      orderBy: { createdAt: 'desc' }
+    });
+  } catch (err) {
+    console.error('Feedback loading error:', err);
+  }
 
   const totalReviews = feedbacks.length;
   const averageRating = totalReviews > 0 
