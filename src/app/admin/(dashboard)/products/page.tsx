@@ -1,4 +1,4 @@
-import prisma from '@/lib/prisma';
+import prisma, { ensureTursoInitialized } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { PackagePlus, Image as ImageIcon, UtensilsCrossed, Tag, Pencil, ArrowUp, ArrowDown } from 'lucide-react';
 import { uploadImageToCloudinary } from '@/lib/cloudinary';
@@ -8,7 +8,10 @@ import { DeleteButton } from '@/components/admin/DeleteButton';
 import { AvailabilityToggle } from '@/components/admin/AvailabilityToggle';
 import Link from 'next/link';
 
+export const dynamic = 'force-dynamic';
+
 export default async function ProductsPage() {
+  await ensureTursoInitialized();
   const categories = await prisma.category.findMany({ orderBy: { order: 'asc' } });
   const rawProducts = await prisma.product.findMany({
     include: { category: true }

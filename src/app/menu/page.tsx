@@ -1,9 +1,10 @@
-import prisma from '@/lib/prisma';
+import prisma, { ensureTursoInitialized } from '@/lib/prisma';
 import { MenuDisplay } from '@/components/MenuDisplay';
 
 export const revalidate = 60; // 60 saniyede bir (cache) yeniler, veritabanını hiç yormaz!
 
 export default async function MenuPage() {
+  await ensureTursoInitialized();
   const categories = await prisma.category.findMany({
     include: {
       products: {

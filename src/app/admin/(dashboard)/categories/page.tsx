@@ -1,4 +1,4 @@
-import prisma from '@/lib/prisma';
+import prisma, { ensureTursoInitialized } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { FolderPlus, Image as ImageIcon, Layers, Pencil, ArrowUp, ArrowDown } from 'lucide-react';
 import { uploadImageToCloudinary } from '@/lib/cloudinary';
@@ -7,7 +7,10 @@ import { reorderCategory } from '@/app/actions/reorder';
 import { DeleteButton } from '@/components/admin/DeleteButton';
 import Link from 'next/link';
 
+export const dynamic = 'force-dynamic';
+
 export default async function CategoriesPage() {
+  await ensureTursoInitialized();
   const categories = await prisma.category.findMany({
     orderBy: { order: 'asc' },
     include: {

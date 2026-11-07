@@ -1,7 +1,12 @@
-import prisma, { isRemoteDatabase } from '@/lib/prisma';
+import prisma, { isRemoteDatabase, ensureTursoInitialized } from '@/lib/prisma';
 import { Tag, Utensils, AlertTriangle, CheckCircle2, EyeOff } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminDashboardPage() {
+  await ensureTursoInitialized();
+
+  const isRemote = isRemoteDatabase();
   let categoryCount = 0;
   let productCount = 0;
   let activeProductCount = 0;
@@ -32,10 +37,10 @@ export default async function AdminDashboardPage() {
 
         {/* Veritabanı Durumu Rozeti */}
         <div className="flex items-center gap-2">
-          {isRemoteDatabase ? (
+          {isRemote ? (
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
               <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              <span>Turso Cloud DB (Vercel Kalıcı Aktif)</span>
+              <span>Turso Cloud DB (Vercel Kalıcı Aktif ✓)</span>
             </div>
           ) : (
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
@@ -56,7 +61,7 @@ export default async function AdminDashboardPage() {
         </div>
       )}
 
-      {!isRemoteDatabase && (
+      {!isRemote && (
         <div className="bg-sky-50 border border-sky-200 text-sky-950 p-4 rounded-2xl text-xs md:text-sm space-y-2">
           <p className="font-bold text-sky-900 flex items-center gap-2">
             🚀 Vercel Canlı Yayını İçin Bilgilendirme
